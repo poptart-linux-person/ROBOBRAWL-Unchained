@@ -12,16 +12,10 @@ public class CombatBody : NetworkBehaviour
     public NetworkVariable<bool> Ragdolled = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     Rigidbody body;
+    bool IsRobot => GetComponent<RobotBrain>() != null;
 
-    void Awake()
-    {
-        body = GetComponent<Rigidbody>();
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        if (IsServer) Health.Value = maxHealth;
-    }
+    void Awake() => body = GetComponent<Rigidbody>();
+    public override void OnNetworkSpawn() { if (IsServer) Health.Value = maxHealth; }
 
     void OnCollisionEnter(Collision collision)
     {
@@ -36,8 +30,8 @@ public class CombatBody : NetworkBehaviour
             otherBody.TakeServerDamage(damage);
             otherBody.ServerKnockback(collision.relativeVelocity, speed * launchScale);
         }
-        if (CompareTag("Robot")) TakeServerDamage(damage);
-        if (collision.collider.CompareTag("ArenaWall") && speed > 5f) TakeServerDamage(damage * 1.5f);
+        if (IsRobot) TakeServerDamage(damage);
+        if (collision.collider.name.Contains("Wall") && speed > 5f) TakeServerDamage(damage * 1.5f);
     }
 
     public void TakeServerDamage(float amount)
@@ -49,8 +43,7 @@ public class CombatBody : NetworkBehaviour
 
     public void ServerKnockback(Vector3 direction, float force)
     {
-        if (!IsServer || body == null) return;
-        if (direction.sqrMagnitude < 0.01f) return;
+        if (!IsServer || body == null || direction.sqrMagnitude < 0.01f) return;
         body.AddForce(direction.normalized * force, ForceMode.Impulse);
         if (force > 9f) EnterRagdoll();
     }
@@ -73,23 +66,20 @@ public class CombatBody : NetworkBehaviour
 
     void RespawnOrReset()
     {
-        if (!IsServer) return;
-        if (CompareTag("Robot"))
+        if (!IsServer || !IsRobot) return;
+        Health.Value = maxHealth;
+        Ragdolled.Value = false;
+        transform.position = RobotArenaBootstrap.GetRobotSpawn();
+        transform.rotation = Quaternion.identity;
+        if (body != null)
         {
-            Health.Value = maxHealth;
-            Ragdolled.Value = false;
-            transform.position = RobotArenaBootstrap.GetRobotSpawn();
-            transform.rotation = Quaternion.identity;
-            if (body != null)
-            {
-                body.velocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-                body.isKinematic = true;
-                body.constraints = RigidbodyConstraints.FreezeRotation;
-                body.mass = 25f;
-            }
-            var robot = GetComponent<RobotBrain>();
-            if (robot != null) robot.enabled = true;
+            body.velocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.isKinematic = true;
+            body.constraints = RigidbodyConstraints.FreezeRotation;
+            body.mass = 25f;
         }
+        var robot = GetComponent<RobotBrain>();
+        if (robot != null) robot.enabled = true;
     }
 }
