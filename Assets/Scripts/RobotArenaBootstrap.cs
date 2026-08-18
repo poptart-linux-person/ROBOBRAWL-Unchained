@@ -12,7 +12,7 @@ public static class RobotArenaBootstrap
     static void Boot()
     {
         if (root != null) return;
-        root = new GameObject("ROBOBRAWL Runtime"); BuildLighting(); BuildArena(); BuildHangout();
+        root = new GameObject("ROBOBRAWL Runtime"); BuildLighting(); BuildArena(); BuildHangout(); BuildWeaponRack();
         var manager=BuildNetworkManager(); BuildPlayerPrefab(manager); BuildRobotPrefab(manager);
         var nm=manager.GetComponent<NetworkManager>(); nm.OnServerStarted += SpawnRobots;
         if(!Application.isBatchMode) nm.StartHost();
@@ -30,6 +30,13 @@ public static class RobotArenaBootstrap
     }
 
     static void BuildHangout(){MakeBlock("Hangout Floor",new Vector3(0,-.28f,33),new Vector3(64,.5f,18),new Color(.34f,.22f,.11f),"ArenaWall");for(int i=0;i<10;i++)MakeBlock("Hangout Pillar",new Vector3(-27+i*6,3.5f,33),new Vector3(2,7,2),new Color(.1f+.05f*i,.3f,.5f+.03f*i),"ArenaWall",true);MakeBlock("Hangout Sign",new Vector3(0,6,33),new Vector3(16,2,1),new Color(.95f,.2f,.15f),"ArenaWall",true);}
+
+    static void BuildWeaponRack()
+    {
+        var types = new[] { RoboWeaponType.Bat, RoboWeaponType.Pipe, RoboWeaponType.Hammer, RoboWeaponType.Cone, RoboWeaponType.Crate, RoboWeaponType.BuzzSaw, RoboWeaponType.XSaw };
+        for (int i=0;i<types.Length;i++) WeaponFactory.Spawn(types[i], new Vector3(-18f + i*6f, 1.2f, 33f), Quaternion.Euler(0, i*18f, 0));
+        for (int i=0;i<4;i++) WeaponFactory.Spawn(RoboWeaponType.BuzzSaw, new Vector3(-18f+i*12f,1f,2f), Quaternion.Euler(0,i*35f,0));
+    }
 
     static GameObject BuildNetworkManager(){var go=new GameObject("NetworkManager");var nm=go.AddComponent<NetworkManager>();var transport=go.AddComponent<UnityTransport>();nm.NetworkConfig=new NetworkConfig{ProtocolVersion=1,TickRate=50,EnableSceneManagement=false,NetworkTransport=transport};Object.DontDestroyOnLoad(go);return go;}
 
